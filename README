@@ -1,0 +1,85 @@
+Describtion:
+===========================
+Extended CSS is a preprocessor for a normal css file that will add inheritance
+as a language construct.
+
+Currently supported inheritance:
++ single
++ multiple
++ recursive (1st level only)
+
+Added keyword:
++ 'extends'
+
+
+ECSS actually emerged as a side-product by sweany (php framework|https://github.com/lockdoc/sweany)
+and comes under the same license.
+
+
+Usage:
+===========================
+1.) Put ecss.php into the directory with all of your css files.
+2.) Do not directly embed your css files into your html, but rather through this wrapper
+3.) Include your CSS files as follows:
+ /path/to/css/dir/ecss.php?file=YOUR_CSS_FILE_1.css
+ /path/to/css/dir/ecss.php?file=YOUR_CSS_FILE_2.css
+
+4.) If you have finished developing your css files, you can call each of your files with 'compressed'
+to produce a stripped file
+ /path/to/css/dir/ecss.php?file=YOUR_CSS_FILE_1.css&compressed
+ /path/to/css/dir/ecss.php?file=YOUR_CSS_FILE_2.css&compressed
+
+Now paste each of those outputs into normal css files
+ 
+ 
+ 
+ 
+Processing Examples:
+===========================
+
+Your CSS File:
+---------------
+/** normal defines **/
+#header {
+	width:      50px;
+	height:     90px;
+	color:		blue;
+}
+.baseColor {
+	color:      #FFFFFF;
+	background: #CECECE;
+}
+/** inherit some stuff **/
+.myBox extends #header, .baseColor {
+	width:      60px;
+}
+
+
+Preprocessed File:
+---------------
+/** normal defines **/
+#header {
+	width:      50px;
+	height:     90px;
+}
+.baseColor {
+	color:      #FFFFFF;
+	background: #CECECE;
+}
+/** inherit some stuff **/
+.myBox extends #header, .baseColor {
+	height:     90px;
+	color:      #FFFFFF;
+	background: #CECECE;
+	width:      60px;
+}
+
+Notes on overwriting:
+
+'color' was inheritated from #header and .baseColor,
+but the last element (.baseColor) applied the final value.
+
+'width' was inheritated from #header, but the local definition
+is stronger than parent defines.
+
+

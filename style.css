@@ -1,0 +1,23 @@
+.cl1 {
+	color:blue;
+	background: white;
+	margin:3px;
+}
+a {
+	border: 1px solid blue;
+}
+#cl2 {
+	color:green;
+}
+
+
+.cl3, .cl5 {
+	margin: 10px;
+}
+
+
+
+.test  extends .cl1, #cl2, .cl3 {
+	padding: 5px;
+}
+
