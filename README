@@ -154,7 +154,7 @@ Unpreprocessed CSS file (what you code):
     }
     #head
     {
-	    font-weight: bold;
+        font-weight: bold;
         font-size:   1.2em;
     }
     .myBox extends .baseColor, #head
@@ -171,7 +171,7 @@ Preprocessed file (auto-generated):
     }
     #head
     {
-	    font-weight: bold;
+        font-weight: bold;
         font-size:   1.2em;
     }
     .myBox
@@ -182,8 +182,6 @@ Preprocessed file (auto-generated):
         width:       60px;
     }	
 
-
-	
 	
 	
 	
@@ -202,17 +200,17 @@ Unpreprocessed CSS file (what you code):
     }
     .baseFont
     {
-	    font-weight: bold;
+        font-weight: bold;
         font-size:   1.2em;
-		color:       #3F3F3f;
+        color:       #3F3F3f;
     }
     .myBox extends #header, .baseColor, .baseFont
     {
         width:       60px;
     }
 
-	
-	
+
+
 Preprocessed file (auto-generated):
 
     #header
@@ -225,9 +223,9 @@ Preprocessed file (auto-generated):
     }
     .baseFont
     {
-	    font-weight: bold;
+        font-weight: bold;
         font-size:   1.2em;
-		color:       #3F3F3f;
+        color:       #3F3F3f;
     }
     .myBox
     {
