@@ -14,14 +14,14 @@
  * GNU General Public License for more details.
  *
  * You should have received a copy of the GNU General Public License
- * along with Sweany. If not, see <http://www.gnu.org/licenses/>.
+ * along with ECSS. If not, see <http://www.gnu.org/licenses/>.
  *
  * @copyright	Copyright 2012-2012, Patrick Plocke <patrick[dot]plocke[at]mailbox[dot]tu-berlin[dot]de>
  * @link		https://github.com/lockdoc/ecss
- * @package		sweany.core
+ * @package		sweany.www
  * @author		Patrick Plocke <patrick[dot]plocke[at]mailbox[dot]tu-berlin[dot]de>
  * @license		GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
- * @version		0.7 2012-07-29 13:25 *
+ * @version		0.7 2012-08-21 23:37
  *
  * Extended CSS is a preprocessor for a normal css file that will add inheritance
  * as a language construct.
@@ -37,9 +37,100 @@
  * (at least for me).
  */
 
+/*******************************************************************************************
+ *
+ *                           OPTIONS
+ *
+ *******************************************************************************************/
+
+ /**
+  *  Options via $_GET
+  *
+  *  file=filename.css
+  *    Specifies the css file to preprocess
+  *
+  *  compressed
+  *    If appended, the preprocessor will produce
+  *    compressed code (removed lines, spaces and tabs)
+  *
+  */
+ 
+ 
+ 
+ /**
+  * Which newline character to use to break
+  * lines in preprocessed CSS file?
+  *
+  * \n, \r, \n\r...
+  */
+$new_line = "\n";
+
+
+/**
+ * Specify the left intendation inside
+ * CSS class, ids and/or tag defines.
+ * Used for non-compressed CSS code generation
+ *
+ * Default: "\t"
+ */
+$intend	= "\t";
+
+
+
+
+
+/*******************************************************************************************
+ *
+ *                           HELPER FUNCTIONS
+ *
+ *******************************************************************************************/
+
+ /**
+  * nice print_r version
+  *
+  *
+  * @param	mixed
+  * @return	String
+  */
 function _debug($arr){echo '<pre>';print_r($arr);echo '</pre>';}
+
+
+/**
+ * Adds a certain amount of whitespaces
+ * to a string.
+ */
 function _addSpace($num){$space='';for ($i=0; $i<$num; $i++){$space.=' ';}return $space;}
 
+
+/**
+ * Read the contents of a file.
+ * This can either be locally, 
+ * or remotely.
+ *
+ * @param	string		$file
+ * @return	string|bool	Content or false on Error
+ */
+function _loadFile($file)
+{
+	if ( !($fp = fopen($file, "r")) )
+	{
+		return false;
+	}
+	$content = '';
+	while ( !feof($fp) )
+	{
+		$content .= fread($fp, 8192);
+	}
+	fclose($fp);
+	return $content;
+}
+
+
+/*******************************************************************************************
+ *
+ *                           CORE FUNCTIONS
+ *
+ *******************************************************************************************/
 
 /**
  *
@@ -83,6 +174,7 @@ function extractExtentElements($raw_css)
 	$string		= trim($raw_css);
 	$tmpArr		= explode('}', $string);
 	$index		= 0;
+	$classes	= array();
 	
 	// phase 1 (get arrayed values)
 	foreach ($tmpArr as $element)
@@ -239,8 +331,14 @@ function extractCSSElements($raw_css)
 
  
 /**
+ * Preprocess the CSS Code (with extends-keywords) and generate
+ * normal working CSS Code.
+ *
+ * Note:
  * Add inherited elements at the beginning
- * of normal css elements
+ * of the arrays,
+ * so they can be overwrittin
+ * by local values if they exists.
  *
  * @param	mixed[]
  * @param	mixed[]
@@ -261,7 +359,7 @@ function preprocessCss($cssElementArr, $extendElementArr)
 				if ( !isset($cssArray[$element]) )
 				{
 					// prevent errors if extending an unknown class/id/element
-					if ( isset($cssElementArr[$inheritedClass]) )
+					if ( array_key_exists($inheritedClass, $cssElementArr) )
 					{
 						$cssArray[$element] = $cssElementArr[$inheritedClass];
 					}
@@ -269,7 +367,7 @@ function preprocessCss($cssElementArr, $extendElementArr)
 				else
 				{
 					// prevent errors if extending an unknown class/id/element
-					if ( isset($cssElementArr[$inheritedClass]) )
+					if ( array_key_exists($inheritedClass, $cssElementArr) )
 					{
 						$cssArray[$element] = array_merge($cssArray[$element], $cssElementArr[$inheritedClass]);
 					}
@@ -297,7 +395,6 @@ function preprocessCss($cssElementArr, $extendElementArr)
  *
  * @param	mixed[]	preprocessed array
  * @param	boolean compressed|readable output
- *
  */
 function outputToScreen($cssPreprocessedArr, $compressed = false)
 {
@@ -334,34 +431,34 @@ function outputToScreen($cssPreprocessedArr, $compressed = false)
 }
 
 
-/************************************* MAIN ENTRY POINT *************************************/
 
-if (!isset($_GET['file']))
+
+/*******************************************************************************************
+ *
+ *                           MAIN ENTRY POINT
+ *
+ *******************************************************************************************/
+
+
+if ( !isset($_GET['file']) || !strlen($_GET['file']) )
 {
-	echo 'you have to call me like this:<br/>'.$_SERVER["SCRIPT_NAME"].'?file=CSS_FILE_TO_PREPROCESS<br/>or<br/>';
-	echo 'you have to call me like this:<br/>'.$_SERVER["SCRIPT_NAME"].'?file=CSS_FILE_TO_PREPROCESS&compressed';
+	echo 'you have to call me like this:<br/>'.$_SERVER["SCRIPT_NAME"].'?file=CSS_FILE_TO_PREPROCESS.css<br/>or<br/>';
+	echo 'you have to call me like this:<br/>'.$_SERVER["SCRIPT_NAME"].'?file=CSS_FILE_TO_PREPROCESS&compressed.css';
 	exit;
 }
 
-$file_input	= $_GET['file'];
-
-if ( is_file($file_input) )
+if ( !($raw_css = _loadFile($_GET['file'])) )
 {
-	// output format options
-	$new_line			= "\n\r";
-	$intend				= "\t";/**/
-
-	$raw_css			= file_get_contents($file_input);
-
-	$raw_css			= _removeComments($raw_css);
-	
-	$cssElementArr 		= extractCSSElements($raw_css);
-	$extendElementArr	= extractExtentElements($raw_css);
-	$cssPreprocessedArr	= preprocessCss($cssElementArr, $extendElementArr);
-
-	outputToScreen($cssPreprocessedArr, isset($_GET['compressed']));
+	echo 'The specified CSS file: <strong style="color:blue;">'.$_GET['file'].'</strong> does not exist.';
+	exit;
 }
-else
-{
-	echo 'file does not exist: '.$file_input;
-}
+
+
+$raw_css			= _removeComments($raw_css);
+$cssElementArr 		= extractCSSElements($raw_css);
+$extendElementArr	= extractExtentElements($raw_css);
+$cssPreprocessedArr	= preprocessCss($cssElementArr, $extendElementArr);
+
+outputToScreen($cssPreprocessedArr, isset($_GET['compressed']));
+exit;
+

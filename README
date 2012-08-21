@@ -1,85 +1,245 @@
-Describtion:
-===========================
-Extended CSS is a preprocessor for a normal css file that will add inheritance
-as a language construct.
+========================================================
+TOC
+========================================================
 
-Currently supported inheritance:
+1. Describtion
+  1.1 What is it?
+  1.2 Currently supported inheritance types
+  1.3 Added keyword
+  1.4 Code example
+  1.5 Note
+2. Usage
+  2.1 Basics
+  2.2 Compressed output
+  2.3 Remote files
+  2.4 Further usage
+3. Processing Examples
+  3.1 Simple Case
+  3.2 Multiple Inheritance
+  3.3 Overwriting
+
+
+
+========================================================
+1. Describtion
+========================================================
+
+1.1 What is it?
+--------------------------------------------------------
+Extended CSS (ECSS) adds a new language construct called
+'extends'. This keyword can then be used in normal *.css
+files to inherit properties from parent classes, ids or
+tags.
+
+Extended CSS (ECSS) itself is the preprocessor that will
+generate standard conform CSS code from the user defined
+extended CSS code.
+
+Its usage is similar to the one by php classes. With that
+you can inherit properties from parent classes by using
+this keyword.
+
+1.2 Currently supported inheritance types:
+--------------------------------------------------------
 + single
 + multiple
 + recursive (1st level only)
 
-Added keyword:
-+ 'extends'
+1.3 Added keyword
+--------------------------------------------------------
++ extends
+
+1.4 Code example
+--------------------------------------------------------
+.myColor { color:red; }
+.box a extends .myColor{  }
+
+1.5 Note
+--------------------------------------------------------
+Extended CSS (ECSS) emerged as a side-product by sweany
+(php framework | https://github.com/lockdoc/sweany)
+and comes under the same license (see: LICENSE).
 
 
-ECSS actually emerged as a side-product by sweany (php framework|https://github.com/lockdoc/sweany)
-and comes under the same license.
+
+========================================================
+2. Usage
+========================================================
+
+2.1 Basics
+--------------------------------------------------------
+1.) Put ecss.php somewhere near your css files in your
+    document root.
+2.) Include your CSS files via the ecss.php wrapper as
+    follows:
+ http://path/to/ecss.php?file=/css/YOUR_CSS_FILE_1.css
+ http://path/to/ecss.php?file=/css/YOUR_CSS_FILE_2.css
+
+2.2 Compressed output
+--------------------------------------------------------
+If you have finished developing your css files, you can
+call each of your files with 'compressed' to produce a
+stripped file output:
+ http://path/to/ecss.php?file=/css/YOUR_CSS_FILE_1.css&compressed
+ http://path/to/ecss.php?file=/css/YOUR_CSS_FILE_2.css&compressed
+
+Then you can paste each of the outputs into your
+favorite text editor and save it.
+
+2.3 Remote files
+--------------------------------------------------------
+Instead of just including local files, you could also
+include remote files. Use the following syntax:
+
+You can also include remote files by specifying an url
+for the file parameter
+ http://path/to/ecss.php?file=http://url.tld/style.css
+or compressed
+ http://path/to/ecss.php?file=http://url.tld/style.css&compressed
+
+2.4 Further usage
+--------------------------------------------------------
+You can also use the ecss.php file as a code layouter
+for stripped CSS files. If you want to browse a remote
+css files that has no spaces/lines or tabs, just paste
+the url into the file param and view a nice layouted
+CSS file. 
 
 
-Usage:
-===========================
-1.) Put ecss.php into the directory with all of your css files.
-2.) Do not directly embed your css files into your html, but rather through this wrapper
-3.) Include your CSS files as follows:
- /path/to/css/dir/ecss.php?file=YOUR_CSS_FILE_1.css
- /path/to/css/dir/ecss.php?file=YOUR_CSS_FILE_2.css
 
-4.) If you have finished developing your css files, you can call each of your files with 'compressed'
-to produce a stripped file
- /path/to/css/dir/ecss.php?file=YOUR_CSS_FILE_1.css&compressed
- /path/to/css/dir/ecss.php?file=YOUR_CSS_FILE_2.css&compressed
+========================================================
+3. Processing Examples
+========================================================
 
-Now paste each of those outputs into normal css files
- 
- 
- 
- 
-Processing Examples:
-===========================
+3.1 Simple Case
+--------------------------------------------------------
 
-Your CSS File:
----------------
-/** normal defines **/
-#header {
-	width:      50px;
-	height:     90px;
-	color:		blue;
-}
-.baseColor {
-	color:      #FFFFFF;
-	background: #CECECE;
-}
-/** inherit some stuff **/
-.myBox extends #header, .baseColor {
-	width:      60px;
-}
+Unpreprocessed CSS file (what you code):
+
+    .baseColor
+    {
+        color:       #FFFFFF;
+    }
+    .myBox extends .baseColor
+    {
+        width:       60px;
+    }
+
+Preprocessed file (auto-generated):
+
+    .baseColor
+    {
+        color:       #FFFFFF;
+    }
+    .myBox
+    {
+        width:       60px;
+        color:       #FFFFFF;
+    }
+
+Nothing too complicated here. The class myBox just gets
+all the attributes from its parent.
+
+	
+3.2 Multiple Inheritance
+--------------------------------------------------------
+Multiple inheritance is done by a comma seperated list
+of classes, ids or tags.
+
+Unpreprocessed CSS file (what you code):
+
+    baseColor
+    {
+        color:       #FFFFFF;
+    }
+    #head
+    {
+	    font-weight: bold;
+        font-size:   1.2em;
+    }
+    .myBox extends .baseColor, #head
+    {
+        width:       60px;
+    }
+
+	
+Preprocessed file (auto-generated):
+
+    .baseColor
+    {
+        color:       #FFFFFF;
+    }
+    #head
+    {
+	    font-weight: bold;
+        font-size:   1.2em;
+    }
+    .myBox
+    {
+        color:       #FFFFFF;
+        font-weight: bold;
+        font-size:   1.2em;
+        width:       60px;
+    }	
 
 
-Preprocessed File:
----------------
-/** normal defines **/
-#header {
-	width:      50px;
-	height:     90px;
-}
-.baseColor {
-	color:      #FFFFFF;
-	background: #CECECE;
-}
-/** inherit some stuff **/
-.myBox extends #header, .baseColor {
-	height:     90px;
-	color:      #FFFFFF;
-	background: #CECECE;
-	width:      60px;
-}
+	
+	
+	
+	
+3.3 Overwriting
+--------------------------------------------------------
 
-Notes on overwriting:
+Unpreprocessed CSS file (what you code):
+
+    #header
+    {
+        with:        100px;
+    }
+    .baseColor
+    {
+        color:       #FFFFFF;
+    }
+    .baseFont
+    {
+	    font-weight: bold;
+        font-size:   1.2em;
+		color:       #3F3F3f;
+    }
+    .myBox extends #header, .baseColor, .baseFont
+    {
+        width:       60px;
+    }
+
+	
+	
+Preprocessed file (auto-generated):
+
+    #header
+    {
+        with:        100px;
+    }
+    .baseColor
+    {
+        color:       #FFFFFF;
+    }
+    .baseFont
+    {
+	    font-weight: bold;
+        font-size:   1.2em;
+		color:       #3F3F3f;
+    }
+    .myBox
+    {
+        font-weight: bold;
+        font-size:   1.2em;
+        color:       #3F3F3f;
+        width:       60px;
+    }	
+
 
 'color' was inheritated from #header and .baseColor,
 but the last element (.baseColor) applied the final value.
 
 'width' was inheritated from #header, but the local definition
 is stronger than parent defines.
-
-
