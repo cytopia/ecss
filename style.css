@@ -6,7 +6,8 @@
 $bar 	: 500px;
 $foo 	: 1000px;
 $test	: solid 1px black;
-
+$int	: 500;
+$integer: 200px;
 
 .myBase {
 	border-bottom:	10px;
@@ -45,5 +46,7 @@ a {
 
 .test  extends .cl1, #cl2, .cl3 {
 	padding: 5px;
+	width:	$int px;
+	height: $integer;
 }
 

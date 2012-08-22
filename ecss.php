@@ -569,11 +569,11 @@ function evaluateConstants($raw_css, $comment = false)
 	// -------------- 1.) Read in constant declaration and their values
 	//
 	$left_match		= preg_quote('$');
+	//$left_match		= '\$\\s*';
 	$center_match	= '([^\:;]*?)\:([^\:;]*?)';	// anything_except_':'_and_';'  :  anything_except_':'_and_';'
 	$right_match	= preg_quote(';');
 	$pattern		= '/'.$left_match.$center_match.$right_match.'/si';
 	$matches		= array();
-	
 	preg_match_all($pattern, $raw_css, $matches);
 	
 	/* $matches =  Array(
@@ -607,12 +607,14 @@ function evaluateConstants($raw_css, $comment = false)
 	//
 	if ( is_array($matches[1]) && is_array($matches[2]) && ( count($matches[1])==count($matches[2]) ) )
 	{
+		$variables = array();
+
 		for ($i=0; $i<count($matches[1]); $i++)
 		{
-			$variable	= trim('$'.$matches[1][$i]);
-			$value		= trim($matches[2][$i]);
-			$value		= ($comment) ? $value.' /* replaced by: '.$variable.' */' : $value;
-			$raw_css	= str_replace($variable, $value, $raw_css);
+			$var		= trim('$'.$matches[1][$i]);
+			$val		= trim($matches[2][$i]);
+			$val		= ($comment) ? $val.' /* replaced by: '.$var.' */' : $val;
+			$raw_css	= preg_replace('/'.preg_quote($var).'\b/i', ($val), $raw_css);
 		}
 	}
 	return $raw_css;
