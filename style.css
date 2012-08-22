@@ -3,11 +3,10 @@
  *  [comment not required though xD]
  *
  */ 
-$bar 	: 500px;
-$foo 	: 1000px;
+$bar 	: 500px;$foo 	: 1000px;
 $test	: solid 1px black;
 $int	: 500;
-$integer: 200px;
+$Integer: 200px;
 
 .myBase {
 	border-bottom:	10px;
