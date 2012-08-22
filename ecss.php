@@ -23,8 +23,9 @@
  * @license		GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
  * @version		0.9 2012-08-22 09:37
  *
- * Extended CSS is a preprocessor for a normal css file that will add inheritance
- * as a language construct by the word 'extends'.
+ * Extended CSS is a preprocessor for a normal css file that will add
+ * constants via $ and inheritance as a language construct
+ * by the word 'extends'.
  *
  * Available Inheritance types:
  *	+ single
@@ -32,6 +33,12 @@
  *	+ recursive (infinite levels)
  *	+ a mix of all the above
  *
+ *
+ * Constant Declarations
+ *  + must be outside a class, id or tag define
+ *  + everything between ':'  and  ';' is treated as the value
+ *  $bar : this is 111 still 33 the value;
+ *  $foo : 100px;
  *
  * ECSS is a side-product by sweany (https://github.com/lockdoc/sweany) and comes
  * under the same license.
@@ -47,24 +54,28 @@
  *
  * CSS Usage examples:
  * ---------------------
+ * 
+ * $myColor :  purple;
+ * $myWidth :  500px;
  *
  * .corpColor1 {
- *     color:       purple;
+ *     color:       $myColor;
  *     font-weight: normal;
  * }
  * #head1 {
- *     width:       500px;
+ *     width:       $myWidth;
  * }
  *
  * .myBody extends .corpColor1, #head1 {
  *     font-weight: bold;
  * }
  *
+ * Inheritance overwriting explanation:
  * After the preprocessor is done, '.myBody' will have all properties of its parents,
  * except the font-weight, which is overwritten by .myBody and will result in 'bold'.
  *
  * This file is shipped with style.css to play around and see how
- * recursion and overwring behaves.
+ * constants, recursion and overwring behaves.
  */
 
 
@@ -90,9 +101,9 @@
  *    If appended, the preprocessor will produce
  *    comments for all properties that have inherit their values including from what parent element they got the value.
  */
- 
- 
- 
+
+
+
 /**
  * Which newline character to use to break
  * lines in preprocessed CSS file?
@@ -142,7 +153,7 @@ function _addSpace($num){$space='';for ($i=0; $i<$num; $i++){$space.=' ';}return
 
 /**
  * Read the contents of a file.
- * This can either be locally, 
+ * This can either be locally,
  * or remotely.
  *
  * @param	string		$file
@@ -209,7 +220,67 @@ function _usage()
 	echo '<p>You can also use this preprocessor to display other stripped css files in user readable form with propper intendation.</p>';
 }
 
-    
+
+
+
+
+/*******************************************************************************************
+ *
+ *                           PRIVATE FUNCTIONS
+ *
+ *******************************************************************************************/
+
+/**
+ * Get all properties from parent elements (recursive)
+ *
+ * @param	mixed[]	$cssElements		array of all css elements and properties
+ * @param	mixed[]	$cssDerivedElements	array of all elements that derive (with their parents as subarrays)
+ * @param	string	$parentName			name of the parent element
+ * @param	boolean	$comment			Adds comments (if true) to inherited values
+ *
+ * @return mixed[] properties of the parent element
+ *		Array
+ *		(
+ *			['property1']	=> 'value',
+ *			['property2']	=> 'value',
+ *		);
+ */
+function getParentPropertiesRecursive($cssElements, $cssDerivedElements, $parentName, $comment)
+{
+	$properties	= array();
+
+	// Check if the element you inherit from actually exists
+	if ( isset($cssElements[$parentName]) )
+	{
+		// Check if the parent element also inherits from a parent
+		// [recursion]
+		if ( isset($cssDerivedElements[$parentName]) )
+		{
+			$parentParent	= key($cssDerivedElements[$parentName]); // name of the parent of the parent
+			$properties		= getParentPropertiesRecursive($cssElements, $cssDerivedElements, $parentParent, $comment);
+		}
+
+		// Now overwrite properties of parent parent (if existed) with normal parent properties
+
+		// Add comments to the elements to inherit from
+		if ($comment)
+		{
+			$commentedProps = array();
+			foreach ( $cssElements[$parentName] as $prop => $val)
+			{
+				$commentedProps[$prop] = $val.' /* inherited from: '.$parentName.' */';
+			}
+			$properties = array_merge($properties, $commentedProps);
+		}
+		else // without comments
+		{
+			$properties = array_merge($properties, $cssElements[$parentName]);
+		}
+	}
+	return $properties;
+}
+
+
 
 
 /*******************************************************************************************
@@ -220,34 +291,28 @@ function _usage()
 
 /**
  *
- * Remove comments
+ * Remove CSS comments
  *
  * @param	String	raw CSS String
  * @return	String	raw CSS String (without comments)
  */
 function _removeComments($raw_css)
 {
-	$find_start	= preg_quote('/*');
-	$find_end	= preg_quote('*/');
-	$rep_start	= '';
-	$rep_end	= '';
-	$between	= ''; //'$i'; by removing $i, we make sure that anything in between rep_start and rep_end is removed
-	$raw_css	= preg_replace('#\\'.$find_start.'(.*)\\'.$find_end.'#isU', $rep_start.$between.$rep_end, $raw_css);
-	return $raw_css;	
+	return  preg_replace("%/\*(?:(?!\*/).)*\*/%s","",$raw_css);
 }
 
 
 
 /**
  * Get all CSS Elements that have a parent do inherit other elements via 'extend'
- * 
+ *
  * It will also take overwriting into account:
  * If a class or property (inside a class) exists twice or more,
  * it will be overwritten by the last occurance (just like in the css file)
  *
  * @param	String	$raw_css	Content of css file to preprocess
- * @return	mixed[] Elements
  *
+ * @return	mixed[] Elements
  * Array
  * (
  *   ['element']	=> Array(		// name of the element that wants to inherit
@@ -257,25 +322,25 @@ function _removeComments($raw_css)
  *	  )
  * );
  */
-function getChildsWithParents($raw_css)
+function extractChildsWithParents($raw_css)
 {
 	$string		= trim($raw_css);
 	$tmpArr		= explode('}', $string);
 	$index		= 0;
 	$classes	= array();
-	
+
 	// phase 1 (get arrayed values)
 	foreach ($tmpArr as $element)
-	{	
+	{
 		if ( strpos($element, '{') !== false )
 		{
 			// seperate classes/id's
 			$seperate = explode('{', $element);
-			
+
 			if ( isset($seperate[0]) && isset($seperate[1]) )
 			{
 				$head = trim($seperate[0]);
-				
+
 				// We have found the extends keyword
 				if ( strpos($head, 'extends') !== false )
 				{
@@ -283,7 +348,7 @@ function getChildsWithParents($raw_css)
 					$class		= trim($seperate[0]);
 					$extends	= trim($seperate[1]);
 					$extendArr	= array();
-					
+
 					// If there are colons we have to deal with multiple inheritance
 					if ( strpos($extends, ',') !== false )
 					{
@@ -305,10 +370,12 @@ function getChildsWithParents($raw_css)
 	return $classes;
 }
 
+
+
 /**
  * Get all CSS Elements and eliminate 'extends'
  * to have a value/data array
- * 
+ *
  * It will also take overwriting into account:
  * If a class or property (inside a class) exists twice or more,
  * it will be overwritten by the last occurance (just like in the css file)
@@ -328,22 +395,22 @@ function extractCSSElements($raw_css)
 {
 	$string		= trim($raw_css);
 	$tmpArr		= explode('}', $string);
-	
+
 	$phase1Arr	= array();
 	$phase2Arr	= array();
 	$phase3Arr	= array();
-	$phase4Arr	= array();	
+	$phase4Arr	= array();
 
 	$index		= 0;
-	
+
 	// phase 1 (get arrayed values)
 	foreach ($tmpArr as $element)
-	{	
+	{
 		if ( strpos($element, '{') !== false )
 		{
 			// seperate classes/id's
 			$seperate = explode('{', $element);
-			
+
 			if ( isset($seperate[0]) && isset($seperate[1]) )
 			{
 				$phase1Arr[$index]['head'] = trim($seperate[0]);
@@ -352,7 +419,7 @@ function extractCSSElements($raw_css)
 			$index++;
 		}
 	}
-	
+
 	// phase 2 (remove 'extends' classes)
 	$index = 0;
 	foreach ($phase1Arr as $element)
@@ -370,7 +437,7 @@ function extractCSSElements($raw_css)
 		$phase2Arr[$index]['body'] = trim($element['body']);
 		$index++;
 	}
-	
+
 	// phase 3 (extract multiple element definitions: e.g.: a,p { color:green; } )
 	$index = 0;
 	foreach ($phase2Arr as $element)
@@ -398,7 +465,7 @@ function extractCSSElements($raw_css)
 	{
 		$name = $element['head'];
 		$phase4Arr[$name] = array();
-		
+
 		if ( strpos($element['body'], ';') !== false)
 		{
 			$properties	= explode(';', $element['body']);
@@ -413,61 +480,12 @@ function extractCSSElements($raw_css)
 			}
 		}
 		$index++;
-	}	
-	return $phase4Arr;
-} 
- 
- 
-/**
- * Get all properties from parent elements (recursive)
- *
- * @param	mixed[]	$cssElements		array of all css elements and properties
- * @param	mixed[]	$cssDerivedElements	array of all elements that derive (with their parents as subarrays)
- * @param	string	$parentName			name of the parent element
- * @param	boolean	$comment			Adds comments (if true) to inherited values
- *
- * @return mixed[] properties of the parent element
- *		Array
- *		(
- *			['property1']	=> 'value',
- *			['property2']	=> 'value',
- *		);
- */
-function getParentPropertiesRecursive($cssElements, $cssDerivedElements, $parentName, $comment)
-{
-	$properties	= array();
-	
-	// Check if the element you inherit from actually exists
-	if ( isset($cssElements[$parentName]) )
-	{
-		// Check if the parent element also inherits from a parent
-		// [recursion]
-		if ( isset($cssDerivedElements[$parentName]) )
-		{
-			$parentParent	= key($cssDerivedElements[$parentName]); // name of the parent of the parent
-			$properties		= getParentPropertiesRecursive($cssElements, $cssDerivedElements, $parentParent, $comment);
-		}
-		
-		// Now overwrite properties of parent parent (if existed) with normal parent properties
-		
-		// Add comments to the elements to inherit from
-		if ($comment)
-		{
-			$commentedProps = array();
-			foreach ( $cssElements[$parentName] as $prop => $val)
-			{
-				$commentedProps[$prop] = $val.' /* inherited from: '.$parentName.' */';
-			}
-			$properties = array_merge($properties, $commentedProps);
-		}
-		else // without comments
-		{
-			$properties = array_merge($properties, $cssElements[$parentName]);
-		}
 	}
-	return $properties;
+	return $phase4Arr;
 }
- 
+
+
+
 /**
  * Preprocess the CSS Code (with extends-keywords) and generate
  * normal working CSS Code.
@@ -481,7 +499,7 @@ function getParentPropertiesRecursive($cssElements, $cssDerivedElements, $parent
  * @param	mixed[]
  * @param	mixed[]
  * @param	boolean	$comment	Whether or not to add comments for inherited values
- * 
+ *
  * @return	mixed[]
  * 	Array
  * 	(
@@ -491,11 +509,11 @@ function getParentPropertiesRecursive($cssElements, $cssDerivedElements, $parent
  *		  )
  * 	);
  */
-function preprocessCss($cssElements, $cssDerivedElements, $comment = false)
+function evauluateInheritance($cssElements, $cssDerivedElements, $comment = false)
 {
 	$cssArray	= array();
 	$index		= 0;
-	
+
 	foreach ($cssElements as $element => $properties)
 	{
 		// CSS Element has parent(s)
@@ -508,7 +526,7 @@ function preprocessCss($cssElements, $cssDerivedElements, $comment = false)
 			{
 				// Get parent properties
 				$parentProperties = getParentPropertiesRecursive($cssElements, $cssDerivedElements, $parentElement, $comment);
-				
+
 				// Merge with local properties
 				// Make sure, that local properties override parent properties
 				// Later elements of array_merge overwrite earlier, so local css is stronger than parent.
@@ -525,6 +543,83 @@ function preprocessCss($cssElements, $cssDerivedElements, $comment = false)
 }
 
 
+
+
+/**
+ *  Replace CSS constants with their according values
+ * 
+ *  Constants have to be outside of classes, ids or tags
+ *  and are defined as follows:
+ *  
+ *  $varname : some 1 2 value;
+ *
+ *  Everything between colon and semi-colon is treated as the value
+ *
+ *  Limitations:
+ *  -------------
+ *  There is no data manipulation (+ - * /) available yet.
+ *
+ * @param	string	$raw_css	Content of the unpreprocessed CSS file
+ * @param	boolean	$comment	Whether or not to comment on replaced constants
+ * @return	string	unpreprocessed CSS string without contstants
+ */
+function evaluateConstants($raw_css, $comment = false)
+{
+	//
+	// -------------- 1.) Read in constant declaration and their values
+	//
+	$left_match		= preg_quote('$');
+	$center_match	= '([^\:;]*?)\:([^\:;]*?)';	// anything_except_':'_and_';'  :  anything_except_':'_and_';'
+	$right_match	= preg_quote(';');
+	$pattern		= '/'.$left_match.$center_match.$right_match.'/si';
+	$matches		= array();
+	
+	preg_match_all($pattern, $raw_css, $matches);
+	
+	/* $matches =  Array(
+	 * (
+	 *	[0] => Array			## full match
+	 *		(
+	 *			[0] => $test : 5px;
+	 *			[1] => $base : solid 1px black;
+	 *		)
+	 *	[1] => Array			## variable names
+	 *		(
+	 *			[0] => test 
+	 *			[1] => base 
+	 *		)
+	 *	[2] => Array			## values
+	 *		(
+	 *			[0] =>  5px
+	 *			[1] =>  solid 1px black
+	 *		)
+	 *	);
+	 */ 
+
+
+	//
+	// -------------- 2.) Remove constant declaration
+	//
+	$raw_css = preg_replace($pattern, "", $raw_css);
+
+	//
+	// -------------- 3.) Replace remaining constants with their values
+	//
+	if ( is_array($matches[1]) && is_array($matches[2]) && ( count($matches[1])==count($matches[2]) ) )
+	{
+		for ($i=0; $i<count($matches[1]); $i++)
+		{
+			$variable	= trim('$'.$matches[1][$i]);
+			$value		= trim($matches[2][$i]);
+			$value		= ($comment) ? $value.' /* replaced by: '.$variable.' */' : $value;
+			$raw_css	= str_replace($variable, $value, $raw_css);
+		}
+	}
+	return $raw_css;
+}
+
+
+
 /**
  * Output the newly generated css to the screen
  * with either readable or compressed form
@@ -536,7 +631,7 @@ function outputToScreen($cssPreprocessedArr, $compressed = false)
 {
 	global $new_line;
 	global $intend;
-	
+
 	header("Content-type: text/css", true);
 	if ( $compressed ) // stripped output for production
 	{
@@ -548,7 +643,7 @@ function outputToScreen($cssPreprocessedArr, $compressed = false)
 				echo $property.':'.$value.';';
 			}
 			echo '}';
-		}	
+		}
 	}
 	else // coder-friendly readable output
 	{
@@ -569,20 +664,22 @@ function outputToScreen($cssPreprocessedArr, $compressed = false)
 
 
 
+
+
 /*******************************************************************************************
  *
  *                           MAIN ENTRY POINT
  *
  *******************************************************************************************/
 
- 
+
 if ( !isset($_GET['file']) || !strlen($_GET['file']) )
 {
 	_usage();
 	exit;
 }
 
-if ( !($raw_css = _loadFile($_GET['file'])) )
+if ( !($raw_css = _loadFile($_GET['file'])) ) // read in css file (local or remotely)
 {
 	echo '<h1 style="color:red;">Error</h1>';
 	echo 'The specified CSS file: <strong style="color:blue;">'.$_GET['file'].'</strong> does not exist.';
@@ -591,14 +688,28 @@ if ( !($raw_css = _loadFile($_GET['file'])) )
 }
 
 
-$raw_css			= _removeComments($raw_css);		// read in css file (local or remotely)
+// --- 01) remove user defined CSS comments
+$raw_css = _removeComments($raw_css);
 
-$cssElements 		= extractCSSElements($raw_css);		// get all css elements with their properties
-$cssDerivedElements	= getChildsWithParents($raw_css);	// get elements that derive from other parents
 
-// generate preprocessed array of new css code
-$cssPreprocessed	= preprocessCss($cssElements, $cssDerivedElements, isset($_GET['comment']));
+// --- 02) replace constants with their values (and optionally create CSS comments)
+$css = evaluateConstants($raw_css, isset($_GET['comment']));		
 
-// render myself as a css file
+
+// --- 03) get all css elements with their properties
+$cssElements = extractCSSElements($css);		
+
+
+// --- 04) get elements that derive from other parents
+$cssDerivedElements	= extractChildsWithParents($css);
+
+
+// --- 05) generate preprocessed array of new css code (and optionally create CSS comments)
+$cssPreprocessed = evauluateInheritance($cssElements, $cssDerivedElements, isset($_GET['comment']));
+
+
+// --- 06) render myself as a css file
 outputToScreen($cssPreprocessed, isset($_GET['compressed']));
+
+
 exit;

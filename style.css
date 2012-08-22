@@ -1,32 +1,44 @@
+/** 
+ * Variable Section
+ *  [comment not required though xD]
+ *
+ */ 
+$bar 	: 500px;
+$foo 	: 1000px;
+$test	: solid 1px black;
+
+
 .myBase {
 	border-bottom:	10px;
 	color:			red;
 }
 .myBaseChild extends  .myBase, #cl2 {
-	border:			20px;
+	border:			$test;	/* use of variable here */
 	border-bottom:	12px;
 }
 
 .myLastChild extends .myBaseChild {
-	color:green;
+	color:		green;
+	width: 		$bar; /* use of variable here */
 }
 
 
 .cl1 {
-	color:blue;
-	background: white;
-	margin:3px;
+	color:		blue;
+	background:	white;
+	margin:		3px;
 }
 a {
-	border: 1px solid blue;
+	border: 	1px solid blue;
 }
 #cl2 {
-	color:green;
+	color:		green;
+	height:		$foo; /* use of variable here */
 }
 
 
 .cl3, .cl5 {
-	margin: 10px;
+	margin: 	10px;
 }
 
 

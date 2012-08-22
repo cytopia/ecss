@@ -5,20 +5,24 @@ TOC
 1. Describtion
   1.1 What is it?
   1.2 Supported inheritance types
-  1.3 Added keyword
-  1.4 Code example
-  1.5 Note
+  1.3 Supported constants
+  1.4 Added keyword
+  1.5 Code example
+  1.6 Note
 2. Usage
   2.1 Basics
   2.2 Compressed output
   2.3 Commented output
   2.4 Remote files
-  2.5Further usage
+  2.5 Further usage
 3. Processing Examples
-  3.1 Simple Case
-  3.2 Multiple Inheritance
-  3.3 Recursive Inheritance
-  3.4 Overwriting
+  3.1 Inheritance
+    3.1.1 Simple Case
+    3.1.2 Multiple Inheritance
+    3.1.3 Recursive Inheritance
+    3.1.4 Overwriting
+  3.2 Constants
+     3.2.1 Basic Example
 
 
 
@@ -31,15 +35,19 @@ TOC
 Extended CSS (ECSS) adds a new language construct called
 'extends'. This keyword can then be used in normal *.css
 files to inherit properties from parent classes, ids or
-tags.
+tags by single, multiple or recursive inheritance.
+
+Additionally ECSS also provides global constants to be
+used throughout the whole CSS file, which makes it easy
+to define basic colors, fonts, etc and assign them
+to element properties. Once you change the constants,
+everything else based on these will change immediately.
 
 Extended CSS (ECSS) itself is the preprocessor that will
 generate standard conform CSS code from the user defined
 extended CSS code.
 
-Its usage is similar to the one by php classes. With that
-you can inherit properties from parent classes by using
-this keyword.
+
 
 1.2 Supported inheritance types:
 --------------------------------------------------------
@@ -47,16 +55,33 @@ this keyword.
 + multiple
 + recursive (infinite levels)
 
-1.3 Added keyword
+1.3 Supported constants:
+--------------------------------------------------------
++ Constant declarations are only supported globally
+  (outside of classes, ids and/or tags)
++ Constants can contain any value, even white spaces
++ There is no operation (+ - * /) currently supported
+
+
+1.4 Added keyword
 --------------------------------------------------------
 + extends
++ $ (precendor for constants)
 
-1.4 Code example
+1.5 Code example
 --------------------------------------------------------
-.myColor { color:red; }
-.box a extends .myColor{  }
+$bar : 100px;
+$foo : 500px;
 
-1.5 Note
+.myColor { 
+    color:red;
+    width: $bar;
+}
+.box a extends .myColor{
+    height: $foo;
+}
+
+1.6 Note
 --------------------------------------------------------
 Extended CSS (ECSS) emerged as a side-product by sweany
 (php framework | https://github.com/lockdoc/sweany)
@@ -94,7 +119,10 @@ If you need to debug your generated CSS file(s) you have
 the option to have auto generated comments about the
 properties that have been inherited from other parents.
 The comments will tell you what property was applied
-by what parent. How to turn on:
+by what parent.
+Comments wil also tell you which values have been
+replaced by constants.
+How to turn on:
  http://path/to/ecss.php?file=/css/YOUR_CSS_FILE_1.css&comment
 
 
@@ -123,7 +151,12 @@ CSS file.
 3. Processing Examples
 ========================================================
 
-3.1 Simple Case
+3.1 Inheritance
+--------------------------------------------------------
+
+
+
+3.1.1 Simple Case
 --------------------------------------------------------
 
 Unpreprocessed CSS file (what you code):
@@ -153,7 +186,7 @@ Nothing too complicated here. The class myBox just gets
 all the attributes from its parent.
 
 	
-3.2 Multiple Inheritance
+3.1.2 Multiple Inheritance
 --------------------------------------------------------
 Multiple inheritance is done by a comma seperated list
 of classes, ids or tags.
@@ -196,7 +229,7 @@ Preprocessed file (auto-generated):
 
 
 	
-3.3 Recursive inheritance
+3.1.3 Recursive inheritance
 --------------------------------------------------------	
 
 Unpreprocessed CSS file (what you code):
@@ -244,7 +277,7 @@ Preprocessed file (auto-generated):
 
 
 
-3.4 Overwriting
+3.1.4 Overwriting
 --------------------------------------------------------
 
 Unpreprocessed CSS file (what you code):
@@ -300,3 +333,25 @@ but the last element (.baseColor) applied the final value.
 
 'width' was inheritated from #header, but the local definition
 is stronger than parent defines.
+
+
+3.2 Constants
+--------------------------------------------------------
+
+3.2.1 Basic Example
+--------------------------------------------------------
+
+$corpColor1 : red;
+$corpColor2 : #CECECE;
+$corpBorder : solid 1px black;
+
+#head {
+    color : $corpColor1;
+    border: $corpBorder;
+}
+
+/* you can also mix it with inheritance */
+
+#main extends #head {
+    color : $corpColor2;
+}
