@@ -54,7 +54,7 @@
  *
  * CSS Usage examples:
  * ---------------------
- * 
+ *
  * $myColor :  purple;
  * $myWidth :  500px;
  *
@@ -149,6 +149,8 @@ function _debug($arr){echo '<pre>';print_r($arr);echo '</pre>';}
  * to a string.
  */
 function _addSpace($num){$space='';for ($i=0; $i<$num; $i++){$space.=' ';}return $space;}
+
+
 
 
 /**
@@ -302,6 +304,18 @@ function _removeComments($raw_css)
 }
 
 
+/**
+ *
+ * Remove empty lines
+ *
+ * @param	string $string
+ * @return	string
+ */
+function _removeEmtpyLines($string)
+{
+	return preg_replace("/(^[\r\n]*|[\r\n]+)[\s\t]*[\r\n]+/", '', $string);
+}
+
 
 /**
  * Get all CSS Elements that have a parent do inherit other elements via 'extend'
@@ -394,6 +408,7 @@ function extractChildsWithParents($raw_css)
 function extractCSSElements($raw_css)
 {
 	$string		= trim($raw_css);
+	_debug($string);
 	$tmpArr		= explode('}', $string);
 
 	$phase1Arr	= array();
@@ -547,10 +562,10 @@ function evauluateInheritance($cssElements, $cssDerivedElements, $comment = fals
 
 /**
  *  Replace CSS constants with their according values
- * 
+ *
  *  Constants have to be outside of classes, ids or tags
  *  and are defined as follows:
- *  
+ *
  *  $varname : some 1 2 value;
  *
  *  Everything between colon and semi-colon is treated as the value
@@ -575,7 +590,7 @@ function evaluateConstants($raw_css, $comment = false)
 	$pattern		= '/'.$left_match.$center_match.$right_match.'/si';
 	$matches		= array();
 	preg_match_all($pattern, $raw_css, $matches);
-	
+
 	/* $matches =  Array(
 	 * (
 	 *	[0] => Array			## full match
@@ -585,8 +600,8 @@ function evaluateConstants($raw_css, $comment = false)
 	 *		)
 	 *	[1] => Array			## variable names
 	 *		(
-	 *			[0] => test 
-	 *			[1] => base 
+	 *			[0] => test
+	 *			[1] => base
 	 *		)
 	 *	[2] => Array			## values
 	 *		(
@@ -594,7 +609,7 @@ function evaluateConstants($raw_css, $comment = false)
 	 *			[1] =>  solid 1px black
 	 *		)
 	 *	);
-	 */ 
+	 */
 
 
 	//
@@ -690,16 +705,17 @@ if ( !($raw_css = _loadFile($_GET['file'])) ) // read in css file (local or remo
 }
 
 
-// --- 01) remove user defined CSS comments
+// --- 01) remove unwanted stuff from css
 $raw_css = _removeComments($raw_css);
+$raw_css = _removeEmtpyLines($raw_css);
 
 
 // --- 02) replace constants with their values (and optionally create CSS comments)
-$css = evaluateConstants($raw_css, isset($_GET['comment']));		
+$css = evaluateConstants($raw_css, isset($_GET['comment']));
 
 
 // --- 03) get all css elements with their properties
-$cssElements = extractCSSElements($css);		
+$cssElements = extractCSSElements($css);
 
 
 // --- 04) get elements that derive from other parents
