@@ -18,13 +18,20 @@
  *
  * @copyright	Copyright 2012-2012, Patrick Plocke <patrick[dot]plocke[at]mailbox[dot]tu-berlin[dot]de>
  * @link		https://github.com/lockdoc/ecss
- * @package		sweany.www
+ * @package		sweany.www (https://github.com/lockdoc/sweany)
  * @author		Patrick Plocke <patrick[dot]plocke[at]mailbox[dot]tu-berlin[dot]de>
  * @license		GPL 2 http://www.gnu.org/licenses/gpl-2.0.html
- * @version		0.7 2012-08-21 23:37
+ * @version		0.9 2012-08-22 09:37
  *
  * Extended CSS is a preprocessor for a normal css file that will add inheritance
- * as a language construct.
+ * as a language construct by the word 'extends'.
+ *
+ * Available Inheritance types:
+ *	+ single
+ *	+ multiple
+ *	+ recursive (infinite levels)
+ *	+ a mix of all the above
+ *
  *
  * ECSS is a side-product by sweany (https://github.com/lockdoc/sweany) and comes
  * under the same license.
@@ -35,41 +42,72 @@
  * is only for development stage and you will take the preprocessed css file anyway,
  * it does not matter. Apart from the above, writing the code this way is more understandable
  * (at least for me).
+ *
+ * If you don't like the code, improve it, fork it, print and burn or eat it, the license allows it.
+ *
+ * CSS Usage examples:
+ * ---------------------
+ *
+ * .corpColor1 {
+ *     color:       purple;
+ *     font-weight: normal;
+ * }
+ * #head1 {
+ *     width:       500px;
+ * }
+ *
+ * .myBody extends .corpColor1, #head1 {
+ *     font-weight: bold;
+ * }
+ *
+ * After the preprocessor is done, '.myBody' will have all properties of its parents,
+ * except the font-weight, which is overwritten by .myBody and will result in 'bold'.
+ *
+ * This file is shipped with style.css to play around and see how
+ * recursion and overwring behaves.
  */
 
-/*******************************************************************************************
+
+
+
+ /*******************************************************************************************
  *
  *                           OPTIONS
  *
  *******************************************************************************************/
 
- /**
-  *  Options via $_GET
-  *
-  *  file=filename.css
-  *    Specifies the css file to preprocess
-  *
-  *  compressed
-  *    If appended, the preprocessor will produce
-  *    compressed code (removed lines, spaces and tabs)
-  *
-  */
+/**
+ *  Options via $_GET
+ *
+ *  file=filename.css
+ *    Specifies the css file to preprocess
+ *
+ *  compressed
+ *    If appended, the preprocessor will produce
+ *    compressed code (removed lines, spaces and tabs)
+ *
+ *  comment
+ *    If appended, the preprocessor will produce
+ *    comments for all properties that have inherit their values including from what parent element they got the value.
+ */
  
  
  
- /**
-  * Which newline character to use to break
-  * lines in preprocessed CSS file?
-  *
-  * \n, \r, \n\r...
-  */
+/**
+ * Which newline character to use to break
+ * lines in preprocessed CSS file?
+ * Only applicable for non-compressed css code generation
+ *
+ * Default: "\n"
+ * Others:  "\r", "\n\r"
+ */
 $new_line = "\n";
 
 
 /**
  * Specify the left intendation inside
  * CSS class, ids and/or tag defines.
- * Used for non-compressed CSS code generation
+ * Only applicable for non-compressed css code generation
  *
  * Default: "\t"
  */
@@ -112,7 +150,7 @@ function _addSpace($num){$space='';for ($i=0; $i<$num; $i++){$space.=' ';}return
  */
 function _loadFile($file)
 {
-	if ( !($fp = fopen($file, "r")) )
+	if ( !($fp = @fopen($file, "r")) )
 	{
 		return false;
 	}
@@ -124,6 +162,54 @@ function _loadFile($file)
 	fclose($fp);
 	return $content;
 }
+
+
+
+/**
+ *  Display usage
+ *
+ */
+function _usage()
+{
+	echo '<h2>Usage:</h2>';
+	echo 'you have to call me like this:<br/>';
+	echo	'<ul>';
+	echo		'<li>'.$_SERVER["SCRIPT_NAME"].'?file=css_file_to_process.css</li>';
+	echo		'<li>'.$_SERVER["SCRIPT_NAME"].'?file=css_file_to_process.css&comment</li>';
+	echo		'<li>'.$_SERVER["SCRIPT_NAME"].'?file=css_file_to_process.css&compressed</li>';
+	echo	'</ul>';
+	echo '<h3>Parameters:</h3>';
+	echo '<ul>';
+	echo	'<li><strong>file</strong><ul>';
+	echo 		'<li>The path to the css file to preprocess.</li>';
+	echo 		'<li>You can also specify remote paths, such as: http://path/to/file.css</li>';
+	echo 	'</ul></li>';
+	echo 	'<li><strong>comment</strong><ul>';
+	echo 		'<li>Will add comments to the inherited properties telling you from where they got the values.</li>';
+	echo 	'</ul></li>';
+	echo 	'<li><strong>compressed</strong><ul>';
+	echo 		'<li>Will produced a stripped version of the css to use for production.</li>';
+	echo 	'</ul></li>';
+	echo '</ul>';
+
+	echo '<h2>Integration</h2>';
+	echo '<p>During the development stage, you can include your css files as follows:</p>';
+	echo '<pre style="border:1px solid black;">';
+	echo 	htmlentities('<link rel="stylesheet" type="text/css" href="/path/to'.$_SERVER["SCRIPT_NAME"].'?file=your_css_file1.css&comment">');
+	echo	'<br/>';
+	echo 	htmlentities('<link rel="stylesheet" type="text/css" href="/path/to'.$_SERVER["SCRIPT_NAME"].'?file=your_css_file2.css&comment">');
+	echo '</pre>';
+	echo '<p>When finished with your css you can  generate the compressed version via:';
+	echo '<pre style="border:1px solid black;">';
+	echo 	htmlentities('http://path/to'.$_SERVER["SCRIPT_NAME"].'?file=your_css_file1.css&compressed');
+	echo '</pre>';
+	echo 'And save the output to a file.</p>';
+
+	echo '<h2>Note:</h2>';
+	echo '<p>You can also use this preprocessor to display other stripped css files in user readable form with propper intendation.</p>';
+}
+
+    
 
 
 /*******************************************************************************************
@@ -153,7 +239,7 @@ function _removeComments($raw_css)
 
 
 /**
- * Get all CSS Elements that do inherit other elements via 'extend'
+ * Get all CSS Elements that have a parent do inherit other elements via 'extend'
  * 
  * It will also take overwriting into account:
  * If a class or property (inside a class) exists twice or more,
@@ -162,14 +248,16 @@ function _removeComments($raw_css)
  * @param	String	$raw_css	Content of css file to preprocess
  * @return	mixed[] Elements
  *
- * $elements = array(
- *   'element_name'	=> array(
- *			0	=> 'extend element 1',
- *			1	=> 'extend element 2',
+ * Array
+ * (
+ *   ['element']	=> Array(		// name of the element that wants to inherit
+ *		['element1']	=> null,	// parent element1 to inherit from
+ *		['element2']	=> null,	// parent element2 to inherit from
+ *		...
  *	  )
- *	);
+ * );
  */
-function extractExtentElements($raw_css)
+function getChildsWithParents($raw_css)
 {
 	$string		= trim($raw_css);
 	$tmpArr		= explode('}', $string);
@@ -188,6 +276,7 @@ function extractExtentElements($raw_css)
 			{
 				$head = trim($seperate[0]);
 				
+				// We have found the extends keyword
 				if ( strpos($head, 'extends') !== false )
 				{
 					$seperate	= explode('extends', $head, 2);
@@ -195,17 +284,18 @@ function extractExtentElements($raw_css)
 					$extends	= trim($seperate[1]);
 					$extendArr	= array();
 					
+					// If there are colons we have to deal with multiple inheritance
 					if ( strpos($extends, ',') !== false )
 					{
 						$extends = explode(',', $extends);
 						foreach ($extends as $ext)
 						{
-							$extendArr[] = trim($ext);
+							$extendArr[trim($ext)] = null;
 						}
 					}
 					else
 					{
-						$extendArr[] = array(trim($extends));
+						$extendArr[trim($extends)] = null;
 					}
 					$classes[$class] = $extendArr;
 				}
@@ -213,7 +303,6 @@ function extractExtentElements($raw_css)
 		}
 	}
 	return $classes;
-
 }
 
 /**
@@ -225,14 +314,15 @@ function extractExtentElements($raw_css)
  * it will be overwritten by the last occurance (just like in the css file)
  *
  * @param	String	$raw_css	Content of css file to preprocess
- * @return	mixed[] Elements
  *
- * $elements = array(
- *   'element_name'	=> array(
- *			'property1'	=> 'value',
- *			'property2'	=> 'value',
+ * @return	mixed[] Elements
+ * Array
+ * (
+ *   ['element']	=> Array(
+ *		['property1']	=> 'value',
+ *		['property2']	=> 'value',
  *	  )
- *	);
+ * );
  */
 function extractCSSElements($raw_css)
 {
@@ -328,7 +418,55 @@ function extractCSSElements($raw_css)
 } 
  
  
-
+/**
+ * Get all properties from parent elements (recursive)
+ *
+ * @param	mixed[]	$cssElements		array of all css elements and properties
+ * @param	mixed[]	$cssDerivedElements	array of all elements that derive (with their parents as subarrays)
+ * @param	string	$parentName			name of the parent element
+ * @param	boolean	$comment			Adds comments (if true) to inherited values
+ *
+ * @return mixed[] properties of the parent element
+ *		Array
+ *		(
+ *			['property1']	=> 'value',
+ *			['property2']	=> 'value',
+ *		);
+ */
+function getParentPropertiesRecursive($cssElements, $cssDerivedElements, $parentName, $comment)
+{
+	$properties	= array();
+	
+	// Check if the element you inherit from actually exists
+	if ( isset($cssElements[$parentName]) )
+	{
+		// Check if the parent element also inherits from a parent
+		// [recursion]
+		if ( isset($cssDerivedElements[$parentName]) )
+		{
+			$parentParent	= key($cssDerivedElements[$parentName]); // name of the parent of the parent
+			$properties		= getParentPropertiesRecursive($cssElements, $cssDerivedElements, $parentParent, $comment);
+		}
+		
+		// Now overwrite properties of parent parent (if existed) with normal parent properties
+		
+		// Add comments to the elements to inherit from
+		if ($comment)
+		{
+			$commentedProps = array();
+			foreach ( $cssElements[$parentName] as $prop => $val)
+			{
+				$commentedProps[$prop] = $val.' /* inherited from: '.$parentName.' */';
+			}
+			$properties = array_merge($properties, $commentedProps);
+		}
+		else // without comments
+		{
+			$properties = array_merge($properties, $cssElements[$parentName]);
+		}
+	}
+	return $properties;
+}
  
 /**
  * Preprocess the CSS Code (with extends-keywords) and generate
@@ -342,48 +480,46 @@ function extractCSSElements($raw_css)
  *
  * @param	mixed[]
  * @param	mixed[]
+ * @param	boolean	$comment	Whether or not to add comments for inherited values
+ * 
  * @return	mixed[]
+ * 	Array
+ * 	(
+ *  	 ['element']	=> Array(
+ *			['property1']	=> 'value',
+ *			['property2']	=> 'value',
+ *		  )
+ * 	);
  */
-function preprocessCss($cssElementArr, $extendElementArr)
+function preprocessCss($cssElements, $cssDerivedElements, $comment = false)
 {
 	$cssArray	= array();
 	$index		= 0;
 	
-	foreach ($cssElementArr as $element => $properties)
+	foreach ($cssElements as $element => $properties)
 	{
-		// add inherited elements
-		if ( array_key_exists($element, $extendElementArr) )
+		// CSS Element has parent(s)
+		if ( isset($cssDerivedElements[$element]) )
 		{
-			foreach ( $extendElementArr[$element] as $inheritedClass )
+			// The loop is for multiple inheritance.
+			// E.g.: .class extends .elem1, elem2
+			//       Then we will have to loop twice
+			foreach ( $cssDerivedElements[$element] as $parentElement => $empy)
 			{
-				if ( !isset($cssArray[$element]) )
-				{
-					// prevent errors if extending an unknown class/id/element
-					if ( array_key_exists($inheritedClass, $cssElementArr) )
-					{
-						$cssArray[$element] = $cssElementArr[$inheritedClass];
-					}
-				}
-				else
-				{
-					// prevent errors if extending an unknown class/id/element
-					if ( array_key_exists($inheritedClass, $cssElementArr) )
-					{
-						$cssArray[$element] = array_merge($cssArray[$element], $cssElementArr[$inheritedClass]);
-					}
-				}
+				// Get parent properties
+				$parentProperties = getParentPropertiesRecursive($cssElements, $cssDerivedElements, $parentElement, $comment);
+				
+				// Merge with local properties
+				// Make sure, that local properties override parent properties
+				// Later elements of array_merge overwrite earlier, so local css is stronger than parent.
+				$cssArray[$element]	= array_merge($parentProperties, $cssElements[$element]);
 			}
 		}
-		
-		// normal css
-		if ( !isset($cssArray[$element]) )
-		{
-			$cssArray[$element] = $cssElementArr[$element];
-		}
+		// no parent, just add local properties
 		else
 		{
-			$cssArray[$element] = array_merge($cssArray[$element], $cssElementArr[$element]);
-		}		
+			$cssArray[$element] = $cssElements[$element];
+		}
 	}
 	return $cssArray;
 }
@@ -402,7 +538,7 @@ function outputToScreen($cssPreprocessedArr, $compressed = false)
 	global $intend;
 	
 	header("Content-type: text/css", true);
-	if ( $compressed )
+	if ( $compressed ) // stripped output for production
 	{
 		foreach ($cssPreprocessedArr as $element => $properties)
 		{
@@ -414,7 +550,7 @@ function outputToScreen($cssPreprocessedArr, $compressed = false)
 			echo '}';
 		}	
 	}
-	else // compressed
+	else // coder-friendly readable output
 	{
 		foreach ($cssPreprocessedArr as $element => $properties)
 		{
@@ -439,26 +575,30 @@ function outputToScreen($cssPreprocessedArr, $compressed = false)
  *
  *******************************************************************************************/
 
-
+ 
 if ( !isset($_GET['file']) || !strlen($_GET['file']) )
 {
-	echo 'you have to call me like this:<br/>'.$_SERVER["SCRIPT_NAME"].'?file=CSS_FILE_TO_PREPROCESS.css<br/>or<br/>';
-	echo 'you have to call me like this:<br/>'.$_SERVER["SCRIPT_NAME"].'?file=CSS_FILE_TO_PREPROCESS&compressed.css';
+	_usage();
 	exit;
 }
 
 if ( !($raw_css = _loadFile($_GET['file'])) )
 {
+	echo '<h1 style="color:red;">Error</h1>';
 	echo 'The specified CSS file: <strong style="color:blue;">'.$_GET['file'].'</strong> does not exist.';
+	_usage();
 	exit;
 }
 
 
-$raw_css			= _removeComments($raw_css);
-$cssElementArr 		= extractCSSElements($raw_css);
-$extendElementArr	= extractExtentElements($raw_css);
-$cssPreprocessedArr	= preprocessCss($cssElementArr, $extendElementArr);
+$raw_css			= _removeComments($raw_css);		// read in css file (local or remotely)
 
-outputToScreen($cssPreprocessedArr, isset($_GET['compressed']));
+$cssElements 		= extractCSSElements($raw_css);		// get all css elements with their properties
+$cssDerivedElements	= getChildsWithParents($raw_css);	// get elements that derive from other parents
+
+// generate preprocessed array of new css code
+$cssPreprocessed	= preprocessCss($cssElements, $cssDerivedElements, isset($_GET['comment']));
+
+// render myself as a css file
+outputToScreen($cssPreprocessed, isset($_GET['compressed']));
 exit;
-
