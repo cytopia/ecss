@@ -201,6 +201,9 @@ Preprocessed file (auto-generated):
 
 Unpreprocessed CSS file (what you code):
 
+    #someId {
+        width:  100px;
+    }
     .parentCorp {
         color:  red;
         margin: 10px;
@@ -210,10 +213,16 @@ Unpreprocessed CSS file (what you code):
     }
     #head extends .parentBase {
     }
-
+	#body extends #head, #someId {
+    	color:  black;
+    }
 	
+
 Preprocessed file (auto-generated):
 
+    #someId {
+        width:  100px;
+    }
     .parentCorp {
         color:  red;
         margin: 10px;
@@ -222,11 +231,15 @@ Preprocessed file (auto-generated):
         color:  blue;
         margin: 10px;
     }
-    #head extend {
+    #head {
         color:  blue;
         margin: 10px;
     }
-
+    #body {
+        color:  black;
+        margin: 10px;
+        width:  100px;
+    }
 
 
 
