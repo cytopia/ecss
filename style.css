@@ -47,6 +47,6 @@ a {
 .test  extends .cl1, #cl2, .cl3 {
 	padding: 5px;
 	width:	$int px;
-	height: $integer;
+	height: $Integer;
 }
 

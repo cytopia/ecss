@@ -614,7 +614,7 @@ function evaluateConstants($raw_css, $comment = false)
 			$var		= trim('$'.$matches[1][$i]);
 			$val		= trim($matches[2][$i]);
 			$val		= ($comment) ? $val.' /* replaced by: '.$var.' */' : $val;
-			$raw_css	= preg_replace('/'.preg_quote($var).'\b/i', ($val), $raw_css);
+			$raw_css	= preg_replace('/'.preg_quote($var).'\b/u', ($val), $raw_css);
 		}
 	}
 	return $raw_css;
