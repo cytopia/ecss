@@ -3,12 +3,13 @@ TOC
 ========================================================
 
 1. Describtion
-  1.1 What is it?
-  1.2 Supported inheritance types
-  1.3 Supported constants
-  1.4 Added keyword
-  1.5 Code example
-  1.6 Note
+  1.1 Quick Usage
+  1.2 What is it?
+  1.3 Supported inheritance types
+  1.4 Supported constants
+  1.5 Added keyword
+  1.6 Code example
+  1.7 Note
 2. Usage
   2.1 Basics
   2.2 Compressed output
@@ -30,7 +31,16 @@ TOC
 1. Describtion
 ========================================================
 
-1.1 What is it?
+1.1 Quick Usage
+--------------------------------------------------------
+To see a ecss in action, you can call your css file in
+the following way, which will produce a syntax high-
+lighted html output
+
+http://ecss.projects.the-wire.de/ecss.php?file=YOUR_CSS.CSS&comment&highlight
+
+
+1.2 What is it?
 --------------------------------------------------------
 Extended CSS (ECSS) adds a new language construct called
 'extends'. This keyword can then be used in normal *.css
@@ -49,13 +59,13 @@ extended CSS code.
 
 
 
-1.2 Supported inheritance types:
+1.3 Supported inheritance types:
 --------------------------------------------------------
 + single
 + multiple
 + recursive (infinite levels)
 
-1.3 Supported constants:
+1.4 Supported constants:
 --------------------------------------------------------
 + Constant declarations are only supported globally
   (outside of classes, ids and/or tags)
@@ -63,12 +73,12 @@ extended CSS code.
 + There is no operation (+ - * /) currently supported
 
 
-1.4 Added keyword
+1.5 Added keyword
 --------------------------------------------------------
 + extends
 + $ (precendor for constants)
 
-1.5 Code example
+1.6 Code example
 --------------------------------------------------------
 $bar : 100px;
 $foo : 500px;
@@ -81,7 +91,7 @@ $foo : 500px;
     height: $foo;
 }
 
-1.6 Note
+1.7 Note
 --------------------------------------------------------
 Extended CSS (ECSS) emerged as a side-product by sweany
 (php framework | https://github.com/lockdoc/sweany)
