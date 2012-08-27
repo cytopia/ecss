@@ -258,8 +258,8 @@ Unpreprocessed CSS file (what you code):
     }
     #head extends .parentBase {
     }
-	#body extends #head, #someId {
-    	color:  black;
+    #body extends #head, #someId {
+        color:  black;
     }
 	
 
