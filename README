@@ -33,9 +33,11 @@ TOC
 
 1.1 Quick Usage
 --------------------------------------------------------
-To see a ecss in action, you can call your css file in
+To see a ECSS in action, you can call your css file in
 the following way, which will produce a syntax high-
-lighted html output
+lighted html output including comments about the
+modifications (variable and inheritance replacements)
+taken place.
 
 http://ecss.projects.the-wire.de/ecss.php?file=YOUR_CSS.CSS&comment&highlight
 
