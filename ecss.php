@@ -100,6 +100,9 @@
  *  comment
  *    If appended, the preprocessor will produce
  *    comments for all properties that have inherit their values including from what parent element they got the value.
+ *
+ *  highlight
+ *    Create html highlighted CSS code. Use in combination with comment.
  */
 
 
@@ -126,6 +129,70 @@ $intend	= "\t";
 
 
 
+/**
+ * Highlighting Colors
+ */
+$clrTag		= '#3F7F7F';	// color of classes, ids and tags
+$clrProperty= 'purple';		// color of property names
+$clrValue	= 'darkblue';	// color of property values
+$clrComment = '#8595C1';	// color of comments
+
+
+
+
+
+/*******************************************************************************************
+*
+*                           REGEXES
+*
+*******************************************************************************************/
+
+/**
+ * Match Variable Declaration
+ *
+ * + one 				'$'
+ * + one or more of:	'A-Z' or 'a-z' or '0-9' or '_'
+ * + zero or more of:	any whitespaces
+ * + 					':'
+ * + zero or more of:	any whitespaces
+ * + one or more of:	ANYTHING except ';'
+ *
+ *		$test   : asdgs ;
+ *		$1_st:"sad s" asd;
+ */
+$regex_match_variable_declaration	= '/\${1}([A-Za-z0-9_]+)(\s*)\:(\s*)([^;]+);/';
+
+
+$regex_match_multiline_comments		= '%/\*(?:(?!\*/).)*\*/%s';
+$regex_match_singleline_comments	= '%(#|;|(//)).*%';	// TODO: needs revising
+$regex_match_empty_lines			= '/(^[\r\n]*|[\r\n]+)[\s\t]*[\r\n]+/';
+
+/**
+ *
+ * Enter description here ...
+ * $test_ extends $t, .a, #b, c { ... }
+ *//*
+$regex_var_class_declaration = '/\${1}([A-Za-z0-9_]+)(\s*)()\:(\s*)([^;]+);/';
+
+$_reg_any_element = '([\$|\.|\#]?)([A-Za-z0-9_]+)';	// $bar | .bar | #bar | bar
+$_regex_extends		= '[\bextends\b]';
+$_regex_parents		= $_reg_any_element;*/
+//'extends' .... '{'
+
+
+//   foo : bar ;   ||   foo bar:bar foo;
+
+/**
+ * Match any propery in the following form
+ *
+ *    foo : bar;
+ *    f o : b a ;
+ *    foo:bar;
+ *//*
+$_reg_property_name		= '(\s*)([^\$]{1}[A-Za-z_-])*(\s*)[^\:]'; // TODO: not working
+$_reg_property_value	= '';
+$regex_match_property_declaration = '/'.$_reg_any_element.'(\s*)(\:[^\bactive\b^\bhover\b^\blink\b^\bvisited\b])(\s*)([\S|\s]|[0-9]*[^;]+);/';
+*/
 
 
 /*******************************************************************************************
@@ -135,7 +202,7 @@ $intend	= "\t";
  *******************************************************************************************/
 
  /**
-  * nice print_r version
+  * nice print_r version (for debugging this code)
   *
   *
   * @param	mixed
@@ -203,6 +270,9 @@ function _usage()
 	echo 	'<li><strong>compressed</strong><ul>';
 	echo 		'<li>Will produced a stripped version of the css to use for production.</li>';
 	echo 	'</ul></li>';
+	echo 	'<li><strong>highlight</strong><ul>';
+	echo 		'<li>Will create a html view with color highlighting. Use in combination with comment.</li>';
+	echo 	'</ul></li>';
 	echo '</ul>';
 
 	echo '<h2>Integration</h2>';
@@ -220,6 +290,9 @@ function _usage()
 
 	echo '<h2>Note:</h2>';
 	echo '<p>You can also use this preprocessor to display other stripped css files in user readable form with propper intendation.</p>';
+	echo '<pre style="border:1px solid black;">';
+	echo 	htmlentities('http://path/to'.$_SERVER["SCRIPT_NAME"].'?file=your_css_file1.css&comment&highlight');
+	echo '</pre>';
 }
 
 
@@ -298,9 +371,10 @@ function getParentPropertiesRecursive($cssElements, $cssDerivedElements, $parent
  * @param	String	raw CSS String
  * @return	String	raw CSS String (without comments)
  */
-function _removeComments($raw_css)
+function _removeComments($string)
 {
-	return  preg_replace("%/\*(?:(?!\*/).)*\*/%s","",$raw_css);
+	global $regex_match_multiline_comments;
+	return preg_replace($regex_match_multiline_comments,"",$string);	// multiple line comments
 }
 
 
@@ -313,7 +387,8 @@ function _removeComments($raw_css)
  */
 function _removeEmtpyLines($string)
 {
-	return preg_replace("/(^[\r\n]*|[\r\n]+)[\s\t]*[\r\n]+/", '', $string);
+	global $regex_match_empty_lines;
+	return preg_replace($regex_match_empty_lines, '', $string);
 }
 
 
@@ -376,7 +451,20 @@ function extractChildsWithParents($raw_css)
 					{
 						$extendArr[trim($extends)] = null;
 					}
-					$classes[$class] = $extendArr;
+					// If there are colons before 'extends', there are several classes that want to inherit
+					// So we have to split the classes as well
+					if ( strpos($class, ',') !== false )
+					{
+						$manyClasses = explode(',', $class);
+						foreach ($manyClasses as $oneClass)
+						{
+							$classes[trim($oneClass)] = $extendArr;
+						}
+					}
+					else
+					{
+						$classes[$class] = $extendArr;
+					}
 				}
 			}
 		}
@@ -408,7 +496,6 @@ function extractChildsWithParents($raw_css)
 function extractCSSElements($raw_css)
 {
 	$string		= trim($raw_css);
-	_debug($string);
 	$tmpArr		= explode('}', $string);
 
 	$phase1Arr	= array();
@@ -537,6 +624,7 @@ function evauluateInheritance($cssElements, $cssDerivedElements, $comment = fals
 			// The loop is for multiple inheritance.
 			// E.g.: .class extends .elem1, elem2
 			//       Then we will have to loop twice
+			$cssArray[$element] = array();
 			foreach ( $cssDerivedElements[$element] as $parentElement => $empy)
 			{
 				// Get parent properties
@@ -545,7 +633,7 @@ function evauluateInheritance($cssElements, $cssDerivedElements, $comment = fals
 				// Merge with local properties
 				// Make sure, that local properties override parent properties
 				// Later elements of array_merge overwrite earlier, so local css is stronger than parent.
-				$cssArray[$element]	= array_merge($parentProperties, $cssElements[$element]);
+				$cssArray[$element]	= array_merge($cssArray[$element], $parentProperties, $cssElements[$element]);
 			}
 		}
 		// no parent, just add local properties
@@ -580,16 +668,12 @@ function evauluateInheritance($cssElements, $cssDerivedElements, $comment = fals
  */
 function evaluateConstants($raw_css, $comment = false)
 {
+	global $regex_match_variable_declaration;
 	//
 	// -------------- 1.) Read in constant declaration and their values
 	//
-	$left_match		= preg_quote('$');
-	//$left_match		= '\$\\s*';
-	$center_match	= '([^\:;]*?)\:([^\:;]*?)';	// anything_except_':'_and_';'  :  anything_except_':'_and_';'
-	$right_match	= preg_quote(';');
-	$pattern		= '/'.$left_match.$center_match.$right_match.'/si';
-	$matches		= array();
-	preg_match_all($pattern, $raw_css, $matches);
+
+	preg_match_all($regex_match_variable_declaration, $raw_css, $matches);
 
 	/* $matches =  Array(
 	 * (
@@ -615,19 +699,19 @@ function evaluateConstants($raw_css, $comment = false)
 	//
 	// -------------- 2.) Remove constant declaration
 	//
-	$raw_css = preg_replace($pattern, "", $raw_css);
+	$raw_css = preg_replace($regex_match_variable_declaration, "", $raw_css);
 
 	//
 	// -------------- 3.) Replace remaining constants with their values
 	//
-	if ( is_array($matches[1]) && is_array($matches[2]) && ( count($matches[1])==count($matches[2]) ) )
+	if ( is_array($matches[1]) && is_array($matches[4]) && ( count($matches[1])==count($matches[4]) ) )
 	{
 		$variables = array();
 
 		for ($i=0; $i<count($matches[1]); $i++)
 		{
 			$var		= trim('$'.$matches[1][$i]);
-			$val		= trim($matches[2][$i]);
+			$val		= trim($matches[4][$i]);
 			$val		= ($comment) ? $val.' /* replaced by: '.$var.' */' : $val;
 			$raw_css	= preg_replace('/'.preg_quote($var).'\b/u', ($val), $raw_css);
 		}
@@ -641,39 +725,83 @@ function evaluateConstants($raw_css, $comment = false)
  * Output the newly generated css to the screen
  * with either readable or compressed form
  *
- * @param	mixed[]	preprocessed array
- * @param	boolean compressed|readable output
+ * @param	mixed[]	$cssPreprocessedArr	preprocessed array
+ * @param	boolean $compressed			compressed or readable output
+ * @param	boolean $highlighted		produce highlighted html code
  */
-function outputToScreen($cssPreprocessedArr, $compressed = false)
+function outputToScreen($cssPreprocessedArr, $compressed = false, $highlight = false)
 {
 	global $new_line;
 	global $intend;
 
-	header("Content-type: text/css", true);
-	if ( $compressed ) // stripped output for production
+	// HTML OUTPUT
+	// coder-friendly readable|highlighted output
+	if ( $highlight )
 	{
+		global $clrTag;
+		global $clrProperty;
+		global $clrValue;
+		global $clrComment;
+
+		global $regex_match_multiline_comments;
+
+
+		$elem_pre	= '<span style="color:'.$clrTag.';">';
+		$elem_post	= '</span>';
+		$prop_pre	= '<span style="color:'.$clrProperty.';">';
+		$prop_post	= '</span>';
+		$val_pre	= '<span style="color:'.$clrValue.';">';
+		$val_post	= '</span>';
+		$comm_pre	= '<span style="color:'.$clrComment.';">';
+		$comm_post	= '</span>';
+
+
+		echo '<pre>';
+
 		foreach ($cssPreprocessedArr as $element => $properties)
 		{
-			echo $element.'{';
-			foreach ($properties as $property => $value)
-			{
-				echo $property.':'.$value.';';
-			}
-			echo '}';
-		}
-	}
-	else // coder-friendly readable output
-	{
-		foreach ($cssPreprocessedArr as $element => $properties)
-		{
-			echo $element.' {'.$new_line;
+			echo $elem_pre.$element.$elem_post.' {'.$new_line;
 			foreach ($properties as $property => $value)
 			{
 				$len	= strlen($property);
-				$space	= _addSpace(20-$len);
-				echo $intend.$property.' :'.$space.$value.';'.$new_line;
+				$space	= _addSpace(25-$len);
+				$value	= preg_replace($regex_match_multiline_comments, $comm_pre.'$0'.$comm_post, $value);
+				echo $intend.$prop_pre.$property.$prop_post.' :'.$space.$val_pre.$value.$val_post.';'.$new_line;
 			}
 			echo '}'.$new_line;
+		}
+		echo '</pre>';
+	}
+	// CSS OUTPUT
+	else
+	{
+		header("Content-type: text/css", true);
+
+		if ( $compressed ) // stripped output for production
+		{
+			foreach ($cssPreprocessedArr as $element => $properties)
+			{
+				echo $element.'{';
+				foreach ($properties as $property => $value)
+				{
+					echo $property.':'.$value.';';
+				}
+				echo '}';
+			}
+		}
+		else // coder-friendly readable output
+		{
+			foreach ($cssPreprocessedArr as $element => $properties)
+			{
+				echo $new_line.$element.' {'.$new_line;
+				foreach ($properties as $property => $value)
+				{
+					$len	= strlen($property);
+					$space	= _addSpace(25-$len);
+					echo $intend.$property.' :'.$space.$value.';'.$new_line;
+				}
+				echo '}'.$new_line;
+			}
 		}
 	}
 }
@@ -703,6 +831,12 @@ if ( !($raw_css = _loadFile($_GET['file'])) ) // read in css file (local or remo
 	_usage();
 	exit;
 }
+/*
+$raw_css = _removeComments($raw_css);
+
+$matches = array();
+preg_match_all($regex_match_variable_declaration, $raw_css, $matches);
+_debug($matches);*/
 
 
 // --- 01) remove unwanted stuff from css
@@ -727,7 +861,7 @@ $cssPreprocessed = evauluateInheritance($cssElements, $cssDerivedElements, isset
 
 
 // --- 06) render myself as a css file
-outputToScreen($cssPreprocessed, isset($_GET['compressed']));
+outputToScreen($cssPreprocessed, isset($_GET['compressed']), isset($_GET['highlight']));
 
 
 exit;

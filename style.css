@@ -3,6 +3,15 @@
  *  [comment not required though xD]
  *
  */ 
+ 
+@charset "ISO-8859-1";
+@import "subs.css";
+@import "print-main.css" print;
+/** 
+ * Variable Section
+ *  [comment not required though xD]
+ *
+ */ 
 $bar 	: 500px;$foo 	: 1000px;
 $test	: solid 1px black;
 $int	: 500;
@@ -48,4 +57,3 @@ a {
 	width:	$int px;
 	height: $Integer;
 }
-
