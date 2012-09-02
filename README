@@ -39,7 +39,7 @@ lighted html output including comments about the
 modifications (variable and inheritance replacements)
 taken place.
 
-http://ecss.projects.the-wire.de/ecss.php?file=YOUR_CSS.CSS&comment&highlight
+http://yourdomain.tld/path/to/ecss.php?file=YOUR_CSS.CSS&comment&highlight
 
 
 1.2 What is it?
