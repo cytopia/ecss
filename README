@@ -96,7 +96,7 @@ $foo : 500px;
 1.7 Note
 --------------------------------------------------------
 Extended CSS (ECSS) emerged as a side-product by sweany
-(php framework | https://github.com/lockdoc/sweany)
+(php framework | https://github.com/cytopia/sweany)
 and comes under the same license (see: LICENSE).
 
 
